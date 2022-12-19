@@ -1,7 +1,7 @@
 from PIL import Image
-import tensorflow as tf
+import tensorflow as tf # If run on EdgeTPU comment this out and add commented line
+#from pycoral.utils import edgetpu 
 from pycoral.utils.dataset import read_label_file
-from pycoral.utils import edgetpu 
 from pycoral.adapters import common
 from pycoral.adapters import classify
 
