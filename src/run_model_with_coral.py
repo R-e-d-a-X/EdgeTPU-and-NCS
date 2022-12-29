@@ -7,7 +7,7 @@ from pycoral.adapters import classify
 
 # hardcoded paths
 MODEL_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/efficientnet-edgetpu-L_quant.tflite'
-INPUT_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/parrot.jpg'
+INPUT_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/bird.jpg'
 LABEL_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/imagenet_labels.txt'
 
 def main():
@@ -31,7 +31,8 @@ def main():
     interpreter.invoke()
 
     # get top_k classification-classes (in this case 1) 
-    classes = classify.get_classes(interpreter, top_k=1)
+    classes = classify.get_classes(interpreter, top_k=2)
+    print(classes)
 
     # index label with class.id and get classification-confidence with class.score
     for c in classes:
