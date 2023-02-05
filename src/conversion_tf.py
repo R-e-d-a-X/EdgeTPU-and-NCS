@@ -1,19 +1,21 @@
 from hummingbird.ml import convert
 import tensorflow as tf
-
-#model = convert(forest, 'torch', X, extra_config={"tree_implementation":"gemm"})
-#torch_model = model.model
-
+''' 
+Module isnt edgetpu compatible yet because of unsupported ops like matmul. 
+TODO 
+1. replace unsupported ops 
+2. address the loss of accuracy when using int8 instead of float32
+'''
 class GEMMDecisionTreeImpl(tf.Module):
 
     def __init__(self, skl_model):
         self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
         self.op = self.container.model._operators[0]
 
-    @tf.function
+    # input signature shape (batch_size, n_features)
+    @tf.function(input_signature=[tf.TensorSpec(shape=(300, 8), dtype=tf.float32)])
     def __call__(self, x, train=False):
         x = tf.transpose(x)
-        x = tf.cast(x, dtype=tf.float32)
         
         decision_cond = tf.math.less_equal
         if self.op.decision_cond.__name__ == 'le':
@@ -47,12 +49,3 @@ class GEMMDecisionTreeImpl(tf.Module):
         x = tf.transpose(tf.reduce_sum(x, 0))
 
         return tf.math.argmax(x, axis=1), x
-
-'''
-X = tf.constant([1,2,3,4,5,6,7,8], shape=[1, 8])
-
-GEMM_model = GEMMDecisionTreeImpl(forest)
-
-y_pred, y = GEMM_model(X)
-print(y_pred, y)
-'''
