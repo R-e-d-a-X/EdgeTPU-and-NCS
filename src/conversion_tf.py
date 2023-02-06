@@ -110,6 +110,36 @@ class PerfectTreeTraversalDecisionTreeImpl(tf.Module):
         self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"perf_tree_trav"})
         self.op = self.container.model._operators[0]
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=(300, 8), dtype=tf.float32)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, 8), dtype=tf.float32)])
     def __call__(self, x):
-        pass
+        decision_cond = tf.math.less_equal
+        if self.op.decision_cond.__name__ == 'le':
+            decision_cond = tf.math.less_equal
+        elif self.op.decision_cond.__name__ == 'ge':
+            decision_cond = tf.math.greater_equal
+        elif self.op.decision_cond.__name__ == 'lt':
+            decision_cond = tf.math.less
+        elif self.op.decision_cond.__name__ == 'gt':
+            decision_cond = tf.math.greater
+        elif self.op.decision_cond.__name__ == 'eq':
+            decision_cond = tf.math.equal
+        else:
+            decision_cond = tf.math.not_equal
+        
+        prev_indices = tf.cast((decision_cond(tf.gather(x, self.op.root_nodes, axis=1), self.op.root_biases)), tf.int64)
+        prev_indices = prev_indices + self.op.tree_indices
+        prev_indices = tf.reshape(prev_indices, [-1,])
+
+        factor = 2
+        for nodes, biases in zip(self.op.nodes, self.op.biases):
+            gather_indices = tf.reshape(tf.gather(nodes, prev_indices, axis=0), [-1, self.op.num_trees])
+            features = tf.reshape(tf.gather(x, gather_indices, axis=1), [-1,])
+            prev_indices = (
+                factor * prev_indices + tf.cast(decision_cond(features, tf.gather(biases, prev_indices, axis=0)), tf.int64)
+            )
+
+        output = tf.reshape(tf.gather(self.op.leaf_nodes, prev_indices, axis=0), [-1, self.op.num_trees, self.op.n_classes])
+
+        output = tf.math.reduce_sum(output, axis=1)
+
+        return tf.math.argmax(output, axis=1), output
