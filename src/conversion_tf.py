@@ -1,15 +1,16 @@
 from hummingbird.ml import convert
 import tensorflow as tf
-''' 
-Module isnt edgetpu compatible yet because of unsupported ops like matmul. 
-TODO 
-1. replace unsupported ops 
-2. address the loss of accuracy when using int8 instead of float32
-'''
+import numpy as np
+
 tf.config.run_functions_eagerly(True)
 
 BATCH_SIZE = 1
+N_FEATURES = 8
 
+''' 
+3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
+convertible but are not fully edgetpu compatible so they get partially mapped to cpu instead.
+'''
 class GEMMDecisionTreeImpl(tf.Module):
 
     def __init__(self, skl_model):
@@ -17,8 +18,8 @@ class GEMMDecisionTreeImpl(tf.Module):
         self.op = self.container.model._operators[0]
 
     # input signature shape (batch_size, n_features)
-    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, 8), dtype=tf.float32)])
-    def __call__(self, x, train=False):
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
+    def __call__(self, x):
         x = tf.transpose(x)
         
         decision_cond = tf.math.less_equal
@@ -56,6 +57,7 @@ class GEMMDecisionTreeImpl(tf.Module):
 
 
 class TreeTraversalDecisionTreeImpl(tf.Module):
+    
     def _expand_indexes(self, batch_size):
         indexes = self.op.nodes_offset
         indexes = indexes.expand(batch_size, self.op.num_trees)
@@ -66,7 +68,7 @@ class TreeTraversalDecisionTreeImpl(tf.Module):
         self.op = self.container.model._operators[0]
 
     # input signature shape (batch_size, n_features)
-    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, 8), dtype=tf.float32)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
     def __call__(self, x):
         #indexes = self._expand_indexes(tf.shape(x).numpy()[0])
         indexes = self._expand_indexes(BATCH_SIZE)
@@ -106,11 +108,12 @@ class TreeTraversalDecisionTreeImpl(tf.Module):
 
 
 class PerfectTreeTraversalDecisionTreeImpl(tf.Module):
+    
     def __init__(self, skl_model):
         self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"perf_tree_trav"})
         self.op = self.container.model._operators[0]
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, 8), dtype=tf.float32)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
     def __call__(self, x):
         decision_cond = tf.math.less_equal
         if self.op.decision_cond.__name__ == 'le':
@@ -143,3 +146,56 @@ class PerfectTreeTraversalDecisionTreeImpl(tf.Module):
         output = tf.math.reduce_sum(output, axis=1)
 
         return tf.math.argmax(output, axis=1), output
+
+'''
+SOON: Edgetpu compatible tensorflow modules that fully map onto the edgetpu
+With numpy.matmul it is possible to multiply 2 int8 matrices, but it is currently not possible to
+convert this model to tflite, since tflite doesnt support np.matmul.
+TODO Find a way to fully int8 quantize model while being supported by tflite and being supported by
+edge tpu whitout suffering significant information loss
+'''
+class GEMMDecisionTreeImplEdgeTPU(tf.Module):
+
+    def __init__(self, skl_model):
+        self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
+        self.op = self.container.model._operators[0]
+
+    # input signature shape (batch_size, n_features)
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.int8)])
+    def __call__(self, x):
+        x = tf.transpose(x)
+
+        decision_cond = tf.math.less_equal
+        if self.op.decision_cond.__name__ == 'le':
+            decision_cond = tf.math.less_equal
+        elif self.op.decision_cond.__name__ == 'ge':
+            decision_cond = tf.math.greater_equal
+        elif self.op.decision_cond.__name__ == 'lt':
+            decision_cond = tf.math.less
+        elif self.op.decision_cond.__name__ == 'gt':
+            decision_cond = tf.math.greater
+        elif self.op.decision_cond.__name__ == 'eq':
+            decision_cond = tf.math.equal
+        else:
+            decision_cond = tf.math.not_equal
+        
+        x = decision_cond(tf.numpy_function(np.matmul, [tf.cast(self.op.weight_1.detach(), tf.int8), x], tf.int8) * 10, tf.cast(self.op.bias_1.detach() * 10, tf.int8))
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_one_size, -1))
+
+        x = tf.cast(x, dtype=tf.int8)
+
+        x = tf.numpy_function(np.matmul, [tf.cast(self.op.weight_2.detach(), tf.int8), x], tf.int8)
+
+        x = tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)) == tf.cast(self.op.bias_2.detach(), tf.int8)
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_two_size, -1))
+
+        x = tf.cast(x, dtype=tf.int8)
+
+        x = tf.numpy_function(np.matmul, [tf.cast(self.op.weight_3.detach() * 10000, tf.int8), x], tf.int8)
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
+
+        x = tf.cast(x, tf.int32)
+
+        x = tf.transpose(tf.reduce_sum(x, 0))
+
+        return tf.math.argmax(x, axis=1), x
