@@ -5,17 +5,14 @@ Output: model_edgetpu.tflite
 Operator                       Count      Status
 
 CAST                           2          Operation is working on an unsupported data type
-QUANTIZE                       2          Operation is otherwise supported, but not mapped due to some unspecified limitation
-SUM                            1          More than one subgraph is not supported
-EQUAL                          1          Operation is working on an unsupported data type
-PACK                           1          Mapped to Edge TPU
-PACK                           1          More than one subgraph is not supported
-RESHAPE                        106        More than one subgraph is not supported
-RESHAPE                        2          Operation is working on an unsupported data type
-RESHAPE                        106        Mapped to Edge TPU
-LESS_EQUAL                     1          Operation is working on an unsupported data type
-SPLIT                          2          For example, a fully-connected or softmax layer with 2D output
-FULLY_CONNECTED                1          Operation is otherwise supported, but not mapped due to some unspecified limitation
-FULLY_CONNECTED                105        Mapped to Edge TPU
-FULLY_CONNECTED                105        More than one subgraph is not supported
 ARG_MAX                        1          Operation is working on an unsupported data type
+LESS_EQUAL                     1          Operation is working on an unsupported data type
+FULLY_CONNECTED                1          Operation is otherwise supported, but not mapped due to some unspecified limitation
+FULLY_CONNECTED                210        Mapped to Edge TPU
+PACK                           2          Mapped to Edge TPU
+RESHAPE                        2          Operation is working on an unsupported data type
+RESHAPE                        212        Mapped to Edge TPU
+EQUAL                          1          Operation is working on an unsupported data type
+SUM                            1          Mapped to Edge TPU
+SPLIT                          2          For example, a fully-connected or softmax layer with 2D output
+QUANTIZE                       2          Operation is otherwise supported, but not mapped due to some unspecified limitation

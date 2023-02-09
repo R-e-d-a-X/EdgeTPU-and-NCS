@@ -1,22 +1,17 @@
-from PIL import Image
-import tensorflow as tf # If run on EdgeTPU comment this out and add commented line
 #from pycoral.utils import edgetpu 
-from pycoral.utils.dataset import read_label_file
 from pycoral.adapters import common
-from pycoral.adapters import classify
 import time
+import tensorflow as tf
+import numpy as np
 
 # hardcoded paths
-MODEL_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/saved_models/efficientnet/effnet-edgetpu-S/efficientnet-edgetpu-S_quant.tflite'
-INPUT_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/bird.jpg'
-LABEL_PATH = '/home/tobi/Bachelorarbeit/EdgeTPU-and-NCS/test_data/imagenet_labels.txt'
+MODEL_PATH = './saved_models/random_forest/float32/model.tflite'
 COUNT = 101
 
 def main():
 
     # read inputimage and class labels
-    img = Image.open(INPUT_PATH)
-    labels = read_label_file(LABEL_PATH)
+    x = tf.constant([1,2,3,4,5,6,7,8], shape=[1,8], dtype=tf.int8)
 
     # prepare file for results
     f = open('results.csv', 'w')
@@ -24,31 +19,31 @@ def main():
 
 
     # create interpreter for tflite-model
-    # if meant to run on EdgeTPU change tf.lite.Interpreter(MODEL) with edgetpu.make_interpreter(MODEL)
+    # if meant to run on EdgeTPU change tf.lite.Interpreter(MODEL) to edgetpu.make_interpreter(MODEL)
     interpreter = tf.lite.Interpreter(model_path=MODEL_PATH) 
+    #interpreter = edgetpu.make_interpreter(MODEL_PATH)
     interpreter.allocate_tensors()
     
-    # get inputsize and resize input image accordingly
-    size = common.input_size(interpreter=interpreter)
-    img = img.resize(size, Image.ANTIALIAS)
-    #img.show()
-    
+    output = interpreter.get_output_details()[0]  
+    input = interpreter.get_input_details()[0] 
+
     # set model input und run inference 
-    common.set_input(interpreter, img)
+    interpreter.set_tensor(input['index'], x)
     for _ in range(COUNT):
         start = time.perf_counter()
         interpreter.invoke()
         inf_time_s = time.perf_counter() - start
 
         inf_time_ms = inf_time_s * 1000
-
-        # get top_k classification-classes (in this case 2) 
-        classes = classify.get_classes(interpreter, top_k=1)
         f.write(f'{inf_time_ms}\n')
 
+        output = interpreter.get_output_details()[0]  
+
+        y_lite_gemm = interpreter.get_tensor(output['index'])
+        y_pred_lite_gemm = np.argmax(y_lite_gemm, axis=1) 
+
         # index label with class.id and get classification-confidence with class.score
-        for c in classes:
-            print(f'Prediction: {labels[c.id]} \t Confidence: {c.score * 100 :.2f}% \t Time: {inf_time_ms:.2f}ms')
+        print(f'Prediction: {y_pred_lite_gemm[0]} \t Confidence: {y_lite_gemm[0]} \t Time: {inf_time_ms:.2f}ms')
 
     f.close()
 
