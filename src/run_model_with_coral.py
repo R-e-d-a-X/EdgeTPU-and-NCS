@@ -9,9 +9,14 @@ MODEL_PATH = './saved_models/random_forest/float32/model.tflite'
 COUNT = 101
 
 def main():
+    np.random.seed(0)
 
-    # read inputimage and class labels
+    # input for batch size = 1
     x = tf.constant([1,2,3,4,5,6,7,8], shape=[1,8], dtype=tf.int8)
+
+    # input for batch size = 300
+    x_300 = np.random.randint(low=0, high=10, size=(300, 8)).astype(np.int8)
+    x_300_f = x_300.astype(np.float32)
 
     # prepare file for results
     f = open('results.csv', 'w')
@@ -26,6 +31,7 @@ def main():
     
     output = interpreter.get_output_details()[0]  
     input = interpreter.get_input_details()[0] 
+
 
     # set model input und run inference 
     interpreter.set_tensor(input['index'], x)
@@ -43,7 +49,7 @@ def main():
         y_pred_lite_gemm = np.argmax(y_lite_gemm, axis=1) 
 
         # index label with class.id and get classification-confidence with class.score
-        print(f'Prediction: {y_pred_lite_gemm[0]} \t Confidence: {y_lite_gemm[0]} \t Time: {inf_time_ms:.2f}ms')
+        print(f'Prediction: {y_pred_lite_gemm} \t Confidence: {y_lite_gemm} \t Time: {inf_time_ms:.2f}ms')
 
     f.close()
 

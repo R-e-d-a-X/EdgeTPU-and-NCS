@@ -161,26 +161,26 @@ class GEMMDecisionTreeImplEdgeTPU(tf.Module):
         self.op = self.container.model._operators[0]
         
         # preprocessing values to be edgetpu compatible
-        
-        # mult by 10 to prevent information loss by values like 0.2
-        self.weight_1 = self.op.weight_1.detach() * tf.constant([10], dtype=tf.float32)
-        self.bias_1 = self.op.bias_1.detach() * tf.constant([10], dtype=tf.float32)
-        
-        self.weight_2 = self.op.weight_2.detach()
-        self.bias_2 = self.op.bias_2.detach()
 
-        # scaling the values up by 10.000 to preserve information and then floor dividing by 40
-        # to map the values between 0 and 10.000 into the values between 0 and 250 
-        self.weight_3 = tf.math.multiply(self.op.weight_3.detach(), tf.constant([250], dtype=tf.float32))
-        
-        # subtracting 128 to map the values between 0 and 250 into -128 and 122 so they are representable
-        # as tf.int8 values
-        #self.weight_3 = tf.math.subtract(self.weight_3, tf.constant([128], dtype=tf.float32))
+        # mult by 127/bias_1.max() to scale  values to int8 range
+        scale = 10
+        self.weight_1 = tf.cast(self.op.weight_1.detach() * tf.constant([scale], dtype=tf.float32), tf.int8)
+        self.bias_1 = self.op.bias_1.detach() * tf.constant([scale], dtype=tf.float32)
+        self.bias_1 = tf.cast(self.bias_1, tf.int8)
+
+        self.weight_2 = tf.cast(self.op.weight_2.detach(), tf.int8)
+        self.bias_2 = tf.cast(self.op.bias_2.detach(), tf.int8)
+
+        # scaling the values between 0 and 127
+        scale = 127 / self.op.weight_3.detach().numpy().max()
+        self.weight_3 = tf.math.multiply(self.op.weight_3.detach(), tf.constant([scale], dtype=tf.float32))
+        self.weight_3 = tf.cast(self.weight_3, tf.int8)
 
 
     # input signature shape (batch_size, n_features)
     @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
     def __call__(self, x):
+        x = tf.cast(x, tf.int8)
         x = tf.transpose(x)
 
         decision_cond = tf.math.less_equal
@@ -197,25 +197,33 @@ class GEMMDecisionTreeImplEdgeTPU(tf.Module):
         else:
             decision_cond = tf.math.not_equal
         
-        x = decision_cond(tf.linalg.matmul(self.weight_1, x), self.bias_1)
+        x = tf.linalg.matmul(self.weight_1, x, output_type=tf.int32)
 
-        x = tf.cast(x, tf.float32)
+        x = tf.cast(x, tf.float32) 
+
+        x = decision_cond(x, tf.cast(self.bias_1, tf.float32))
+
+        x = tf.cast(x, tf.int8)
         
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_one_size, -1))
 
-        x = tf.linalg.matmul(self.weight_2, x)
+        x = tf.linalg.matmul(self.weight_2, x, output_type=tf.int32)
+        
+        x = tf.cast(x, tf.int8) 
 
-        x = tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)) == self.bias_2
+        x = tf.cast(tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)), tf.float32) == tf.cast(self.bias_2, tf.float32)
 
-        x = tf.cast(x, dtype=tf.float32)
+        x = tf.cast(x, dtype=tf.int8)
 
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_two_size, -1))
 
-
-        x = tf.linalg.matmul(self.weight_3, x)
+        x = tf.linalg.matmul(self.weight_3, x, output_type=tf.int32)
 
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
 
         x = tf.transpose(tf.reduce_sum(x, 0))
+        
+        scale = 127 / 10000
+        x = tf.cast(tf.cast(x, tf.float32) * tf.constant([scale]), tf.int8)
 
         return tf.math.argmax(x, axis=1), x
