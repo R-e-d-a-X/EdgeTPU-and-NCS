@@ -52,8 +52,11 @@ class GEMMDecisionTreeImpl(tf.Module):
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
 
         x = tf.transpose(tf.reduce_sum(x, 0))
+        
+        scale = 127 / 10000
+        x = x * scale
 
-        return tf.math.argmax(x, axis=1), x
+        return x
 
 
 class TreeTraversalDecisionTreeImpl(tf.Module):
@@ -154,6 +157,39 @@ convert this model to tflite, since tflite doesnt support np.matmul.
 TODO Find a way to fully int8 quantize model while being supported by tflite and being supported by
 edge tpu whitout suffering significant information loss
 '''
+def get_implements_signature():
+    implements_signature = [
+      # 'name' will be used as a name for the operation.
+      'name: "le8bit"',
+      # attr "tfl_fusable_op" is required to be set with true value.
+      'attr {key: "tfl_fusable_op" value { b: true } }',
+    ]
+    return ' '.join(implements_signature)
+
+
+@tf.function(experimental_implements=get_implements_signature())
+def decision_cond_v2(a, b, dec):
+    c = tf.constant([1], shape=[1], dtype=tf.int8)
+    d = tf.constant([0], shape=[1], dtype=tf.int8)
+
+    cols = tf.reshape(a, [1, -1]).shape[1]
+
+    decision_cond = tf.math.less_equal
+    if dec == 'le':
+        decision_cond = tf.math.less_equal
+    elif dec == 'ge':
+        decision_cond = tf.math.greater_equal
+    elif dec == 'lt':
+        decision_cond = tf.math.less
+    elif dec == 'gt':
+        decision_cond = tf.math.greater
+    elif dec == 'eq':
+        decision_cond = tf.math.equal
+    else:
+        decision_cond = tf.math.not_equal
+
+    return tf.where(tf.reshape(decision_cond(a, b), shape=[cols]), c, d)
+
 class GEMMDecisionTreeImplEdgeTPU(tf.Module):
 
     def __init__(self, skl_model):
@@ -166,7 +202,7 @@ class GEMMDecisionTreeImplEdgeTPU(tf.Module):
         scale = 10
         self.weight_1 = tf.cast(self.op.weight_1.detach() * tf.constant([scale], dtype=tf.float32), tf.int8)
         self.bias_1 = self.op.bias_1.detach() * tf.constant([scale], dtype=tf.float32)
-        self.bias_1 = tf.cast(self.bias_1, tf.int8)
+        self.bias_1 = tf.cast(self.bias_1, tf.int32)
 
         self.weight_2 = tf.cast(self.op.weight_2.detach(), tf.int8)
         self.bias_2 = tf.cast(self.op.bias_2.detach(), tf.int8)
@@ -178,52 +214,39 @@ class GEMMDecisionTreeImplEdgeTPU(tf.Module):
 
 
     # input signature shape (batch_size, n_features)
-    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.int8)])
     def __call__(self, x):
-        x = tf.cast(x, tf.int8)
         x = tf.transpose(x)
-
-        decision_cond = tf.math.less_equal
-        if self.op.decision_cond.__name__ == 'le':
-            decision_cond = tf.math.less_equal
-        elif self.op.decision_cond.__name__ == 'ge':
-            decision_cond = tf.math.greater_equal
-        elif self.op.decision_cond.__name__ == 'lt':
-            decision_cond = tf.math.less
-        elif self.op.decision_cond.__name__ == 'gt':
-            decision_cond = tf.math.greater
-        elif self.op.decision_cond.__name__ == 'eq':
-            decision_cond = tf.math.equal
-        else:
-            decision_cond = tf.math.not_equal
         
         x = tf.linalg.matmul(self.weight_1, x, output_type=tf.int32)
-
-        x = tf.cast(x, tf.float32) 
-
-        x = decision_cond(x, tf.cast(self.bias_1, tf.float32))
-
-        x = tf.cast(x, tf.int8)
+                
+        x = decision_cond_v2(x, self.bias_1, self.op.decision_cond.__name__)
         
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_one_size, -1))
 
         x = tf.linalg.matmul(self.weight_2, x, output_type=tf.int32)
         
-        x = tf.cast(x, tf.int8) 
+        x = tf.cast(x, tf.int8)
 
-        x = tf.cast(tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)), tf.float32) == tf.cast(self.bias_2, tf.float32)
+        x = tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1))
 
-        x = tf.cast(x, dtype=tf.int8)
+        x = tf.cast(x, tf.int32)
+
+        x = decision_cond_v2(x, tf.cast(self.bias_2, tf.int32), 'eq')
 
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_two_size, -1))
 
         x = tf.linalg.matmul(self.weight_3, x, output_type=tf.int32)
 
+        x = tf.cast(x, tf.int8)
+
         x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
+
+        x = tf.cast(x, tf.int32)
 
         x = tf.transpose(tf.reduce_sum(x, 0))
         
         scale = 127 / 10000
-        x = tf.cast(tf.cast(x, tf.float32) * tf.constant([scale]), tf.int8)
+        x = tf.cast(tf.cast(x, tf.float32) * tf.constant([scale]), tf.int32)
 
         return tf.math.argmax(x, axis=1), x
