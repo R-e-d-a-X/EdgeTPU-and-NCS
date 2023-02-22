@@ -11,6 +11,33 @@ N_FEATURES = 8
 3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
 convertible but are not fully edgetpu compatible so they get partially mapped to cpu instead.
 '''
+def get_implements_signature(n):
+  implements_signature = [
+    # 'name' will be used as a name for the operation.
+    f'name: {n}',
+    # attr "tfl_fusable_op" is required to be set with true value.
+    'attr {key: "tfl_fusable_op" value { b: true } }',
+  ]
+  return ' '.join(implements_signature)
+
+
+@tf.function(experimental_implements=get_implements_signature('ge_edgetpu'))
+def _greater_equal(x, y):
+    return tf.cast(2 * tf.sigmoid(x - y), tf.int32) 
+
+@tf.function(experimental_implements=get_implements_signature('g_edgetpu'))
+def _greater(x, y):
+    return tf.cast(2 * tf.sigmoid((x - (y + 1))), tf.int32) 
+
+@tf.function(experimental_implements=get_implements_signature('le_edgetpu'))
+def _less_equal(x, y):
+    return tf.cast(2 * tf.sigmoid(y - x), tf.int32) 
+
+@tf.function(experimental_implements=get_implements_signature('l_edgetpu'))
+def _less(x, y):
+    return tf.cast(2 * tf.sigmoid((y - 1) - x), tf.int32)
+
+
 class GEMMDecisionTreeImpl(tf.Module):
 
     def __init__(self, skl_model):
@@ -22,15 +49,15 @@ class GEMMDecisionTreeImpl(tf.Module):
     def __call__(self, x):
         x = tf.transpose(x)
         
-        decision_cond = tf.math.less_equal
+        decision_cond = _less_equal
         if self.op.decision_cond.__name__ == 'le':
-            decision_cond = tf.math.less_equal
+            decision_cond = _less_equal
         elif self.op.decision_cond.__name__ == 'ge':
-            decision_cond = tf.math.greater_equal
+            decision_cond = _greater_equal
         elif self.op.decision_cond.__name__ == 'lt':
-            decision_cond = tf.math.less
+            decision_cond = _less
         elif self.op.decision_cond.__name__ == 'gt':
-            decision_cond = tf.math.greater
+            decision_cond = _greater
         elif self.op.decision_cond.__name__ == 'eq':
             decision_cond = tf.math.equal
         else:
