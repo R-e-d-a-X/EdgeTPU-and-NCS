@@ -4,12 +4,12 @@ Output: model_edgetpu.tflite
 
 Operator                       Count      Status
 
-ADD                            20         Operation is working on an unsupported data type
-LESS_EQUAL                     20         Operation is working on an unsupported data type
-ARG_MAX                        1          Operation is working on an unsupported data type
-GATHER                         40         Operation not supported
-GATHER                         57         Operation is working on an unsupported data type
+SELECT_V2                      19         Operation is working on an unsupported data type
 SUM                            1          Mapped to Edge TPU
-SELECT_V2                      20         Operation is working on an unsupported data type
-RESHAPE                        20         Mapped to Edge TPU
-RESHAPE                        77         Operation is working on an unsupported data type
+ADD                            19         Operation is working on an unsupported data type
+ARG_MAX                        1          Operation is working on an unsupported data type
+RESHAPE                        19         Mapped to Edge TPU
+RESHAPE                        73         Operation is working on an unsupported data type
+LESS_EQUAL                     19         Operation is working on an unsupported data type
+GATHER                         38         Operation not supported
+GATHER                         54         Operation is working on an unsupported data type

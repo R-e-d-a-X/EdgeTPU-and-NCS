@@ -1,11 +1,10 @@
 #from pycoral.utils import edgetpu 
-from pycoral.adapters import common
 import time
 import tensorflow as tf
 import numpy as np
 
 # hardcoded paths
-MODEL_PATH = './saved_models/random_forest/float32/model.tflite'
+MODEL_PATH = './saved_models/random_forest/gemm/float32/one_tree_depth_1/model11.tflite'
 COUNT = 101
 
 def main():
@@ -14,13 +13,9 @@ def main():
     # input for batch size = 1
     x = tf.constant([1,2,3,4,5,6,7,8], shape=[1,8], dtype=tf.int8)
 
-    # input for batch size = 300
-    x_300 = np.random.randint(low=0, high=10, size=(300, 8)).astype(np.int8)
-    x_300_f = x_300.astype(np.float32)
-
     # prepare file for results
-    f = open('results.csv', 'w')
-    f.write("TimeMS\n")
+    #f = open('results.csv', 'w')
+    #f.write("TimeMS\n")
 
 
     # create interpreter for tflite-model
@@ -41,7 +36,7 @@ def main():
         inf_time_s = time.perf_counter() - start
 
         inf_time_ms = inf_time_s * 1000
-        f.write(f'{inf_time_ms}\n')
+        #f.write(f'{inf_time_ms}\n')
 
         output = interpreter.get_output_details()[0]  
 
@@ -51,7 +46,7 @@ def main():
         # index label with class.id and get classification-confidence with class.score
         print(f'Prediction: {y_pred_lite_gemm} \t Confidence: {y_lite_gemm} \t Time: {inf_time_ms:.2f}ms')
 
-    f.close()
+    #f.close()
 
 if __name__ == '__main__':
     main()
