@@ -185,7 +185,7 @@ class GEMMDecisionTreeImplLess(tf.Module):
     @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
     def __call__(self, x):
         x = tf.transpose(x)
-        
+
         decision_cond = tf.math.less_equal
         if self.op.decision_cond.__name__ == 'le':
             decision_cond = tf.math.less_equal
