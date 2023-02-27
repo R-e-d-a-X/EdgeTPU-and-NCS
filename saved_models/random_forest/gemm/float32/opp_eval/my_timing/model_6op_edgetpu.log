@@ -1,0 +1,10 @@
+Edge TPU Compiler version 16.0.384591198
+Input: model_6op.tflite
+Output: model_6op_edgetpu.tflite
+
+Operator                       Count      Status
+
+FULLY_CONNECTED                3          Mapped to Edge TPU
+PACK                           1          Mapped to Edge TPU
+RESHAPE                        2          Mapped to Edge TPU
+TRANSPOSE                      1          Mapped to Edge TPU
