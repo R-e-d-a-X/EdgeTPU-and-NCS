@@ -1,0 +1,19 @@
+Edge TPU Compiler version 16.0.384591198
+Input: model_16_16_2_1.tflite
+Output: model_16_16_2_1_edgetpu.tflite
+
+Operator                       Count      Status
+
+SUB                            1          Mapped to Edge TPU
+SUM                            1          Mapped to Edge TPU
+LOGISTIC                       1          Mapped to Edge TPU
+PACK                           2          Mapped to Edge TPU
+SPLIT                          2          For example, a fully-connected or softmax layer with 2D output
+MUL                            1          Mapped to Edge TPU
+FULLY_CONNECTED                33         Mapped to Edge TPU
+CAST                           3          Operation is working on an unsupported data type
+RESHAPE                        34         Mapped to Edge TPU
+RESHAPE                        2          Operation is working on an unsupported data type
+EQUAL                          1          Operation is working on an unsupported data type
+DEQUANTIZE                     1          Operation is working on an unsupported data type
+QUANTIZE                       2          Operation is otherwise supported, but not mapped due to some unspecified limitation

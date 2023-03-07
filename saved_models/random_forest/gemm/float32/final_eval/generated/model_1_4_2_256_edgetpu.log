@@ -1,0 +1,18 @@
+Edge TPU Compiler version 16.0.384591198
+Input: model_1_4_2_256.tflite
+Output: model_1_4_2_256_edgetpu.tflite
+
+Operator                       Count      Status
+
+DEQUANTIZE                     1          Operation is working on an unsupported data type
+SUB                            1          Mapped to Edge TPU
+MUL                            1          Mapped to Edge TPU
+QUANTIZE                       2          Operation is otherwise supported, but not mapped due to some unspecified limitation
+FULLY_CONNECTED                3          Mapped to Edge TPU
+CAST                           3          Operation is working on an unsupported data type
+SUM                            1          Mapped to Edge TPU
+RESHAPE                        3          Mapped to Edge TPU
+RESHAPE                        2          Operation is working on an unsupported data type
+TRANSPOSE                      3          Mapped to Edge TPU
+EQUAL                          1          Operation is working on an unsupported data type
+LOGISTIC                       1          Mapped to Edge TPU

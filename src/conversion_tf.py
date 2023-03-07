@@ -4,8 +4,8 @@ import numpy as np
 
 tf.config.run_functions_eagerly(True)
 
-BATCH_SIZE = 300
-N_FEATURES = 8
+BATCH_SIZE = 256
+N_FEATURES = 16
 
 ''' 
 3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
