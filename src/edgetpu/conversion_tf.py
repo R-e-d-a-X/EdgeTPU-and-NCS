@@ -4,8 +4,8 @@ import numpy as np
 
 tf.config.run_functions_eagerly(True)
 
-BATCH_SIZE = 256
-N_FEATURES = 16
+BATCH_SIZE = 1
+N_FEATURES = 4
 
 ''' 
 3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
@@ -37,10 +37,57 @@ def _less_equal(x, y):
 def _less(x, y):
     return tf.cast(2 * tf.sigmoid((y - 1) - x), tf.int32)
 
+class GEMMDecisionTreeImplKeras(tf.keras.Model):
+
+    def __init__(self, skl_model):
+        super().__init__()
+        self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
+        self.op = self.container.model._operators[0]
+
+    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
+    def call(self, x):
+        x = tf.transpose(x)
+
+        print(self.op.weight_1.detach().numpy().shape)
+        
+        decision_cond = tf.math.less_equal
+        if self.op.decision_cond.__name__ == 'le':
+            decision_cond = tf.math.less_equal
+        elif self.op.decision_cond.__name__ == 'ge':
+            decision_cond = tf.math.greater_equal
+        elif self.op.decision_cond.__name__ == 'lt':
+            decision_cond = tf.math.less
+        elif self.op.decision_cond.__name__ == 'gt':
+            decision_cond = tf.math.greater
+        elif self.op.decision_cond.__name__ == 'eq':
+            decision_cond = tf.math.equal
+        else:
+            decision_cond = tf.math.not_equal
+        
+        x = decision_cond(tf.linalg.matmul(self.op.weight_1.detach().numpy(), x), self.op.bias_1.detach().numpy())
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_one_size, -1))
+
+        x = tf.cast(x, dtype=tf.float32)
+
+        x = tf.linalg.matmul(self.op.weight_2.detach().numpy(), x)
+
+        x = tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)) == self.op.bias_2.detach().numpy()
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_two_size, -1))
+
+        x = tf.cast(x, dtype=tf.float32)
+
+        x = tf.linalg.matmul(self.op.weight_3.detach().numpy(), x)
+        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
+
+        x = tf.transpose(tf.reduce_sum(x, 0))
+
+        return x
+
 
 class GEMMDecisionTreeImpl(tf.Module):
 
     def __init__(self, skl_model):
+        super().__init__()
         self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
         self.op = self.container.model._operators[0]
 
@@ -49,15 +96,15 @@ class GEMMDecisionTreeImpl(tf.Module):
     def __call__(self, x):
         x = tf.transpose(x)
         
-        decision_cond = _less_equal
+        decision_cond = tf.math.less_equal
         if self.op.decision_cond.__name__ == 'le':
-            decision_cond = _less_equal
+            decision_cond = tf.math.less_equal
         elif self.op.decision_cond.__name__ == 'ge':
-            decision_cond = _greater_equal
+            decision_cond = tf.math.greater_equal
         elif self.op.decision_cond.__name__ == 'lt':
-            decision_cond = _less
+            decision_cond = tf.math.less
         elif self.op.decision_cond.__name__ == 'gt':
-            decision_cond = _greater
+            decision_cond = tf.math.greater
         elif self.op.decision_cond.__name__ == 'eq':
             decision_cond = tf.math.equal
         else:
