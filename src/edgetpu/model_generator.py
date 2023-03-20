@@ -37,18 +37,18 @@ def generate_model(bs, nf, nt, md):
     X_f_b = np.random.randint(low=0, high=10, size=(BATCH_SIZE, N_FEATURES)).astype(np.int8)
     X_f_b_f = X_f_b.astype(np.float32)
 
-    conv_model = convert(forest, 'torch', extra_config={"tree_implementation":"gemm"})
-
     # initialize model
     model_gemm = conv.GEMMDecisionTreeImplKeras(forest)
-    
-    print(x_test[0].shape)
-    model_gemm([x_test[0]])
 
-    model_gemm.save('~/Bachelorarbeit/EdgeTPU-and-NCS/saved_models/NCS/test/first')
+    op = convert(forest, 'torch', extra_config={"tree_implementation":"gemm"}).model._operators[0]
+    print(op.weight_1.shape)
+
+    test = model_gemm(np.expand_dims(x_test[0], axis=0))
+
+    model_gemm.save('../../saved_models/ncs/test/first')
 
     # get model prediction
-    y_gemm = model_gemm(X_f_b_f)
+    print(test)
 
     #concrete_func = model_gemm.__call__.get_concrete_function()
 

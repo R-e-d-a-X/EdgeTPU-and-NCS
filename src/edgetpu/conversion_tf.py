@@ -40,46 +40,58 @@ def _less(x, y):
 class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
     def __init__(self, skl_model):
-        super().__init__()
-        self.container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
-        self.op = self.container.model._operators[0]
+        super(GEMMDecisionTreeImplKeras, self).__init__(name='first_keras')
+        container = convert(skl_model, 'torch', extra_config={"tree_implementation":"gemm"})
+        op = container.model._operators[0]
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=(BATCH_SIZE, N_FEATURES), dtype=tf.float32)])
-    def call(self, x):
-        x = tf.transpose(x)
+        self.weight_1 = tf.Variable(op.weight_1.detach().numpy(), trainable=False, name='w1')
+        self.weight_2 = tf.Variable(op.weight_2.detach().numpy(), trainable=False, name='w2')
+        self.weight_3 = tf.Variable(op.weight_3.detach().numpy(), trainable=False, name='w3')
 
-        print(self.op.weight_1.detach().numpy().shape)
-        
-        decision_cond = tf.math.less_equal
-        if self.op.decision_cond.__name__ == 'le':
-            decision_cond = tf.math.less_equal
-        elif self.op.decision_cond.__name__ == 'ge':
-            decision_cond = tf.math.greater_equal
-        elif self.op.decision_cond.__name__ == 'lt':
-            decision_cond = tf.math.less
-        elif self.op.decision_cond.__name__ == 'gt':
-            decision_cond = tf.math.greater
-        elif self.op.decision_cond.__name__ == 'eq':
-            decision_cond = tf.math.equal
+        self.bias_1 = tf.Variable(op.bias_1.detach().numpy(), trainable=False, name='b1')
+        self.bias_2 = tf.Variable(op.bias_2.detach().numpy(), trainable=False, name='b2')
+
+        self.hidden_one_size = tf.Variable(op.hidden_one_size, trainable=False, name='h1s')
+        self.hidden_two_size = tf.Variable(op.hidden_two_size, trainable=False, name='h2s')
+        self.hidden_three_size = tf.Variable(op.hidden_three_size, trainable=False, name='h3s')
+        self.n_trees = tf.Variable(op.n_trees, trainable=False, name='nt')
+
+        self.decision_cond = tf.math.less_equal
+        if op.decision_cond.__name__ == 'le':
+            self.decision_cond = tf.math.less_equal
+        elif op.decision_cond.__name__ == 'ge':
+            self.decision_cond = tf.math.greater_equal
+        elif op.decision_cond.__name__ == 'lt':
+            self.decision_cond = tf.math.less
+        elif op.decision_cond.__name__ == 'gt':
+            self.decision_cond = tf.math.greater
+        elif op.decision_cond.__name__ == 'eq':
+            self.decision_cond = tf.math.equal
         else:
-            decision_cond = tf.math.not_equal
+            self.decision_cond = tf.math.not_equal
         
-        x = decision_cond(tf.linalg.matmul(self.op.weight_1.detach().numpy(), x), self.op.bias_1.detach().numpy())
-        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_one_size, -1))
+
+    def call(self, x):
+        x = tf.transpose(x)     
+        
+        x = self.decision_cond(tf.linalg.matmul(self.weight_1, x), self.bias_1)
+        x = tf.reshape(x, (self.n_trees, self.hidden_one_size, -1))
 
         x = tf.cast(x, dtype=tf.float32)
 
-        x = tf.linalg.matmul(self.op.weight_2.detach().numpy(), x)
+        x = tf.linalg.matmul(self.weight_2, x)
 
-        x = tf.reshape(x, (self.op.n_trees * self.op.hidden_two_size, -1)) == self.op.bias_2.detach().numpy()
-        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_two_size, -1))
+        x = tf.reshape(x, (self.n_trees * self.hidden_two_size, -1)) == self.bias_2
+        x = tf.reshape(x, (self.n_trees, self.hidden_two_size, -1))
 
         x = tf.cast(x, dtype=tf.float32)
 
-        x = tf.linalg.matmul(self.op.weight_3.detach().numpy(), x)
-        x = tf.reshape(x, (self.op.n_trees, self.op.hidden_three_size, -1))
+        x = tf.linalg.matmul(self.weight_3, x)
+        x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
 
-        x = tf.transpose(tf.reduce_sum(x, 0))
+        #x = tf.transpose(tf.reduce_sum(x, 0))
+        #x = tf.reduce_sum(x, 0)
+        x = tf.transpose(x)
 
         return x
 
