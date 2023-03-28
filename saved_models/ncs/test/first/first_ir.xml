@@ -469,7 +469,7 @@
 		<MO_version value="2022.3.0-9052-9752fafe8eb-releases/2022/3" />
 		<Runtime_version value="2022.3.0-9052-9752fafe8eb-releases/2022/3" />
 		<conversion_parameters>
-			<compress_to_fp16 value="True" />
+			<data_type value="FP16" />
 			<framework value="tf" />
 			<input_shape value="[1, 4]" />
 			<model_name value="first_ir" />
