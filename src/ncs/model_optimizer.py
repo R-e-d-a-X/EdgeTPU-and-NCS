@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+import time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,5 +43,9 @@ del model
 input_layer = compiled_model.input(0)
 output_layer = compiled_model.output(0)
 
+start = time.perf_counter()
 res = compiled_model(np.array([[1,2,3,4]]))[output_layer]
-print(res)
+inf_time_s = time.perf_counter() - start
+inf_time_ms = inf_time_s * 1000
+
+print(f'OpenVino:\t\tRes: {res}\tTime: {inf_time_ms}ms')

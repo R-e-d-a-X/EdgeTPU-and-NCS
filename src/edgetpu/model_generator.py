@@ -4,6 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
 import conversion_tf as conv
 from hummingbird.ml import convert
+import time
 
 def generate_model(bs, nf, nt, md):
     # variables 
@@ -43,8 +44,12 @@ def generate_model(bs, nf, nt, md):
     op = convert(forest, 'torch', extra_config={"tree_implementation":"gemm"}).model._operators[0]
     print(op.weight_1.shape)
 
+    start = time.perf_counter()
     test = model_gemm(np.expand_dims(x_test[0], axis=0))
+    inf_time = (time.perf_counter() - start) * 1000
 
+    print(inf_time)
+    return
     model_gemm.save('../../saved_models/ncs/test/first')
 
     # get model prediction

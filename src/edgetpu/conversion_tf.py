@@ -75,16 +75,16 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         x = tf.transpose(x)     
         
         x = self.decision_cond(tf.linalg.matmul(self.weight_1, x), self.bias_1)
-        x = tf.reshape(x, (self.n_trees, self.hidden_one_size, -1))
-
         x = tf.cast(x, dtype=tf.float32)
+
+        x = tf.reshape(x, (self.n_trees, self.hidden_one_size, -1))
 
         x = tf.linalg.matmul(self.weight_2, x)
 
         x = tf.reshape(x, (self.n_trees * self.hidden_two_size, -1)) == self.bias_2
-        x = tf.reshape(x, (self.n_trees, self.hidden_two_size, -1))
-
         x = tf.cast(x, dtype=tf.float32)
+        
+        x = tf.reshape(x, (self.n_trees, self.hidden_two_size, -1))
 
         x = tf.linalg.matmul(self.weight_3, x)
         x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
