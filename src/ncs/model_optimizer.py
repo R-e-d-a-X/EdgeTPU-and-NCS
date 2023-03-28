@@ -19,7 +19,6 @@ ir_model_name = "first_ir"
 mo_command = f"""mo
                  --saved_model_dir "../../saved_models/ncs/test/first"
                  --input_shape "[1, 4]"
-                 --compress_to_fp16
                  --output_dir "../../saved_models/ncs/test/first"
                  --model_name "first_ir"
                  """
