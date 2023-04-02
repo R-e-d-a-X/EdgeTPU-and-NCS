@@ -3,12 +3,8 @@ import sys
 from pathlib import Path
 import time
 
-import matplotlib.pyplot as plt
 import numpy as np
-import tensorflow as tf
-from PIL import Image
 from openvino.runtime import Core
-from openvino.tools.mo import mo_tf
 
 model_name = "first"
 model_path = Path('../../saved_models/ncs/test/first')
@@ -17,12 +13,8 @@ ir_model_name = "first_ir"
 # Get the path to the Model Optimizer script
 
 # Construct the command for Model Optimizer
-mo_command = f"""mo
-                 --saved_model_dir "../../saved_models/ncs/test/first"
-                 --input_shape "[1, 4]"
-                 --output_dir "../../saved_models/ncs/test/first"
-                 --model_name "first_ir"
-                 """
+mo_command = f"""mo --saved_model_dir "../../saved_models/ncs/test/first" --input_shape "[1, 4]" --output_dir "../../saved_models/ncs/test/first" --model_name "first_ir"
+              """
 mo_command = " ".join(mo_command.split())
 print("Model Optimizer command to convert TensorFlow to OpenVINO:")
 print(mo_command)

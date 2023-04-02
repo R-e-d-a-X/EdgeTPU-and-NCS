@@ -48,8 +48,8 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         self.weight_2 = tf.Variable(op.weight_2.detach().numpy(), trainable=False, name='w2')
         self.weight_3 = tf.Variable(op.weight_3.detach().numpy(), trainable=False, name='w3')
 
-        self.bias_1 = tf.Variable(op.bias_1.detach().numpy(), trainable=False, name='b1')
-        self.bias_2 = tf.Variable(op.bias_2.detach().numpy(), trainable=False, name='b2')
+        self.bias_1 = tf.Variable(tf.repeat(op.bias_1.detach().numpy(), BATCH_SIZE, axis=1), trainable=False, name='b1')
+        self.bias_2 = tf.Variable(tf.repeat(op.bias_2.detach().numpy(), BATCH_SIZE, axis=1), trainable=False, name='b2')
 
         self.hidden_one_size = tf.Variable(op.hidden_one_size, trainable=False, name='h1s')
         self.hidden_two_size = tf.Variable(op.hidden_two_size, trainable=False, name='h2s')
@@ -74,14 +74,29 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
     def call(self, x):
         x = tf.transpose(x)     
         
-        x = self.decision_cond(tf.linalg.matmul(self.weight_1, x), self.bias_1)
+        x = tf.linalg.matmul(self.weight_1, x)
+        
+        # Before decision_cond, reshape to 1-dim. tensor for OpenCL kernel. Also upscale
+        # bias_1 so the 2nd dimension matches the batch size. 
+        # Example: Batchsize 1 = (3, 1)  =>  Batchsize 5 = (3, 5)
+        # Values:  [[1],            [[1, 1, 1, 1, 1],
+        #           [1],     =>      [1, 1, 1, 1, 1],
+        #           [1]]             [1, 1, 1, 1, 1]]
+
+        #x = self.decision_cond(x, tf.repeat(self.bias_1, BATCH_SIZE, axis=1))
+        x = tf.reshape(x, (self.bias_1.shape[0] * BATCH_SIZE))
+        x = self.decision_cond(x, tf.reshape(self.bias_1, (self.bias_1.shape[0] * BATCH_SIZE)))
+
         x = tf.cast(x, dtype=tf.float32)
 
         x = tf.reshape(x, (self.n_trees, self.hidden_one_size, -1))
 
         x = tf.linalg.matmul(self.weight_2, x)
 
-        x = tf.reshape(x, (self.n_trees * self.hidden_two_size, -1)) == self.bias_2
+        # Before decision_cond, reshape to 1-dim. tensor for OpenCL kernel
+
+        x = tf.reshape(x, (self.n_trees * self.hidden_two_size * BATCH_SIZE)) 
+        x = x == tf.reshape(self.bias_2, (self.n_trees * self.hidden_two_size  * BATCH_SIZE))
         x = tf.cast(x, dtype=tf.float32)
         
         x = tf.reshape(x, (self.n_trees, self.hidden_two_size, -1))
@@ -89,9 +104,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         x = tf.linalg.matmul(self.weight_3, x)
         x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
 
-        #x = tf.transpose(tf.reduce_sum(x, 0))
+        x = tf.transpose(tf.reduce_sum(x, 0))
         #x = tf.reduce_sum(x, 0)
-        x = tf.transpose(x)
+        #x = tf.transpose(x)
 
         return x
 
