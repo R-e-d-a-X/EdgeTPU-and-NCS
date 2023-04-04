@@ -58,7 +58,8 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
         self.decision_cond = tf.math.less_equal
         if op.decision_cond.__name__ == 'le':
-            self.decision_cond = tf.math.less_equal
+            #self.decision_cond = tf.math.less_equal
+            self.decision_cond = tf.math.less
         elif op.decision_cond.__name__ == 'ge':
             self.decision_cond = tf.math.greater_equal
         elif op.decision_cond.__name__ == 'lt':
@@ -83,9 +84,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         #           [1],     =>      [1, 1, 1, 1, 1],
         #           [1]]             [1, 1, 1, 1, 1]]
 
-        #x = self.decision_cond(x, tf.repeat(self.bias_1, BATCH_SIZE, axis=1))
-        x = tf.reshape(x, (self.bias_1.shape[0] * BATCH_SIZE))
-        x = self.decision_cond(x, tf.reshape(self.bias_1, (self.bias_1.shape[0] * BATCH_SIZE)))
+        x = self.decision_cond(x, self.bias_1)
+        #x = tf.reshape(x, (self.bias_1.shape[0] * BATCH_SIZE))
+        #x = self.decision_cond(x, tf.reshape(self.bias_1, (self.bias_1.shape[0] * BATCH_SIZE)))
 
         x = tf.cast(x, dtype=tf.float32)
 
@@ -95,8 +96,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
         # Before decision_cond, reshape to 1-dim. tensor for OpenCL kernel
 
-        x = tf.reshape(x, (self.n_trees * self.hidden_two_size * BATCH_SIZE)) 
-        x = x == tf.reshape(self.bias_2, (self.n_trees * self.hidden_two_size  * BATCH_SIZE))
+        #x = tf.reshape(x, (self.n_trees * self.hidden_two_size * BATCH_SIZE)) 
+        #x = x == tf.reshape(self.bias_2, (self.n_trees * self.hidden_two_size  * BATCH_SIZE))
+        x = tf.reshape(x, (self.n_trees * self.hidden_two_size, -1)) == self.bias_2
         x = tf.cast(x, dtype=tf.float32)
         
         x = tf.reshape(x, (self.n_trees, self.hidden_two_size, -1))
@@ -104,9 +106,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         x = tf.linalg.matmul(self.weight_3, x)
         x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
 
-        x = tf.transpose(tf.reduce_sum(x, 0))
+        #x = tf.transpose(tf.reduce_sum(x, 0))
         #x = tf.reduce_sum(x, 0)
-        #x = tf.transpose(x)
+        x = tf.transpose(x)
 
         return x
 

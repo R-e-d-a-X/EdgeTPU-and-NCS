@@ -6,20 +6,20 @@ import time
 import numpy as np
 from openvino.runtime import Core
 
-model_name = "first"
-model_path = Path('../../saved_models/ncs/test/first')
-ir_model_name = "first_ir"
+model_name = "second"
+model_path = Path('../../saved_models/ncs/test/second')
+ir_model_name = "second_ir"
 
 # Get the path to the Model Optimizer script
 
 # Construct the command for Model Optimizer
-mo_command = f"""mo --saved_model_dir "../../saved_models/ncs/test/first" --input_shape "[1, 4]" --output_dir "../../saved_models/ncs/test/first" --model_name "first_ir"
+mo_command = f"""mo --saved_model_dir "../../saved_models/ncs/test/first" --input_shape "[1,4]" --output_dir "../../saved_models/ncs/test/first" --model_name "first_ir"
               """
 mo_command = " ".join(mo_command.split())
 print("Model Optimizer command to convert TensorFlow to OpenVINO:")
 print(mo_command)
 
-model_xml = f"../../saved_models/ncs/test/first/first_ir.xml"
+model_xml = f"../../saved_models/ncs/test/second/second_ir.xml"
 
 # Load model
 ie = Core()

@@ -1,4 +1,4 @@
-<CustomLayer name="LessEqual" type="MVCL" version="1">
+<CustomLayer name="StatefulPartitionedCall/first_keras/LessEqual" type="MVCL" version="1">
     <Kernel entry="less_equal">
         <Source filename="kernels.bin"/>
     </Kernel>

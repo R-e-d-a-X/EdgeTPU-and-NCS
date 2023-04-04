@@ -49,8 +49,7 @@ def generate_model(bs, nf, nt, md):
     inf_time = (time.perf_counter() - start) * 1000
 
     print(inf_time)
-    return
-    model_gemm.save('../../saved_models/ncs/test/first')
+    model_gemm.save('../../saved_models/ncs/test/second')
 
     # get model prediction
     print(test)
