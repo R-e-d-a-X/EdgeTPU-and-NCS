@@ -1,3 +1,4 @@
+EDGETPU:
 Vermutete Verlustquellen:
     1. Wenn man ein Model kompiliert, dann wird nicht der ganze Edge TPU cache verwendet, 
     sondern Daten werden aus externem Speicher gestreamed, obwohl noch genug Platz On-Chip ist. 
@@ -29,3 +30,10 @@ Beobachtungen:
     180mys länger als die Inferenz von 1 Transpose und 1 Matmul.
 
     4. Die Prediction des Models unterscheidet sich, wenn man es auf TPU oder CPU ausführt.
+
+
+NCS2:
+    mo nur benutzen, wenn OpenVINO environment noch nicht initialisiert ist
+    less_equal nicht kompatibel, aber less und equal schon
+    Wenn source setup.sh ausgeführt wird, funktionert Inferenz auf dem NCS2
+
