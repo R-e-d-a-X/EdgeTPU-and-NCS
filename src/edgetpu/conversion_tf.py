@@ -107,8 +107,8 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
 
         #x = tf.transpose(tf.reduce_sum(x, 0))
-        #x = tf.reduce_sum(x, 0)
-        x = tf.transpose(x)
+        x = tf.reduce_sum(x, 0)
+        #x = tf.transpose(x)
 
         return x
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<mapping>
+	<map>
+		<framework name="Func/PartitionedCall/input/_0" out_port_id="Func/PartitionedCall/input/_0:0"/>
+		<IR name="input_1" out_port_id="0" id="0"/>
+	</map>
+	<map>
+		<framework name="input_1" out_port_id="input_1:0"/>
+		<IR name="input_1" out_port_id="0" id="0"/>
+	</map>
+	<map>
+		<framework name="input_1" out_port_id="input_1"/>
+		<IR name="input_1" out_port_id="0" id="0"/>
+	</map>
+	<map>
+		<framework name="PartitionedCall/first_keras/transpose/perm" out_port_id="PartitionedCall/first_keras/transpose/perm:0"/>
+		<IR name="PartitionedCall/first_keras/transpose/perm" out_port_id="0" id="1"/>
+	</map>
+	<map>
+		<framework name="Identity" out_port_id="Identity:0"/>
+		<IR name="PartitionedCall/first_keras/transpose" out_port_id="2" id="2"/>
+	</map>
+	<map>
+		<framework name="Func/PartitionedCall/output/_1" out_port_id="Func/PartitionedCall/output/_1:0"/>
+		<IR name="PartitionedCall/first_keras/transpose" out_port_id="2" id="2"/>
+	</map>
+	<map>
+		<framework name="PartitionedCall/Identity" out_port_id="PartitionedCall/Identity:0"/>
+		<IR name="PartitionedCall/first_keras/transpose" out_port_id="2" id="2"/>
+	</map>
+	<map>
+		<framework name="PartitionedCall/first_keras/transpose" out_port_id="PartitionedCall/first_keras/transpose:0"/>
+		<IR name="PartitionedCall/first_keras/transpose" out_port_id="2" id="2"/>
+	</map>
+</mapping>

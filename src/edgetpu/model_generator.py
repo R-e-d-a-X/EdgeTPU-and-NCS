@@ -45,11 +45,11 @@ def generate_model(bs, nf, nt, md):
     print(op.weight_1.shape)
 
     start = time.perf_counter()
-    test = model_gemm(np.expand_dims(x_test[0], axis=0))
+    test = model_gemm(np.array([[1.,2.,3.,4.]], dtype=np.float32))
     inf_time = (time.perf_counter() - start) * 1000
 
     print(inf_time)
-    model_gemm.save('../../saved_models/ncs/test/second')
+    model_gemm.save('../../saved_models/ncs/test/ncs_test')
 
     # get model prediction
     print(test)
