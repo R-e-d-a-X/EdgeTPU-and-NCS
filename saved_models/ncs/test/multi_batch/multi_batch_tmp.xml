@@ -1,0 +1,493 @@
+<?xml version="1.0" ?>
+<net name="multi_batch" version="11">
+	<layers>
+		<layer id="0" name="StatefulPartitionedCall/first_keras/MatMul_2/ReadVariableOp" type="Const" version="opset1">
+			<data offset="0" size="289600" shape="100,4,181" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul_2/ReadVariableOp:0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>181</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="1" name="StatefulPartitionedCall/first_keras/MatMul_1/ReadVariableOp" type="Const" version="opset1">
+			<data offset="289600" size="13032000" shape="100,181,180" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul_1/ReadVariableOp:0">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>180</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="2" name="StatefulPartitionedCall/first_keras/MatMul/ReadVariableOp" type="Const" version="opset1">
+			<data offset="13321600" size="576000" shape="18000,8" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul/ReadVariableOp:0">
+					<dim>18000</dim>
+					<dim>8</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="3" name="input_1" type="Parameter" version="opset1">
+			<data shape="[16,8]" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="Func/StatefulPartitionedCall/input/_0:0,input_1,input_1:0">
+					<dim>16</dim>
+					<dim>8</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="4" name="StatefulPartitionedCall/first_keras/transpose/perm" type="Const" version="opset1">
+			<data offset="13897600" size="16" shape="2" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/transpose/perm:0">
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="5" name="StatefulPartitionedCall/first_keras/transpose" type="Transpose" version="opset1">
+			<input>
+				<port id="0">
+					<dim>16</dim>
+					<dim>8</dim>
+				</port>
+				<port id="1">
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/transpose:0">
+					<dim>8</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="6" name="StatefulPartitionedCall/first_keras/MatMul" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="false"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>8</dim>
+				</port>
+				<port id="1">
+					<dim>8</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="7" name="StatefulPartitionedCall/first_keras/Less/ReadVariableOp" type="Const" version="opset1">
+			<data offset="13897616" size="72000" shape="18000,1" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/Less/ReadVariableOp:0">
+					<dim>18000</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="8" name="StatefulPartitionedCall/first_keras/Less" type="Less" version="opset1">
+			<data auto_broadcast="numpy"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>18000</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="BOOL" names="StatefulPartitionedCall/first_keras/Less:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="9" name="StatefulPartitionedCall/first_keras/Cast" type="Convert" version="opset1">
+			<data destination_type="f32"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="StatefulPartitionedCall/first_keras/Cast:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="10" name="StatefulPartitionedCall/first_keras/Equal/ReadVariableOp" type="Const" version="opset1">
+			<data offset="13897616" size="72000" shape="18000,1" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/Equal/ReadVariableOp:0">
+					<dim>18000</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="11" name="StatefulPartitionedCall/first_keras/Equal" type="Equal" version="opset1">
+			<data auto_broadcast="numpy"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>18000</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="BOOL" names="StatefulPartitionedCall/first_keras/Equal:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="12" name="StatefulPartitionedCall/first_keras/Cast_1" type="Convert" version="opset1">
+			<data destination_type="f32"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="StatefulPartitionedCall/first_keras/Cast_1:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="13" name="StatefulPartitionedCall/first_keras/Add" type="Add" version="opset1">
+			<data auto_broadcast="numpy"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Add:0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="14" name="StatefulPartitionedCall/first_keras/Reshape/shape" type="Const" version="opset1">
+			<data offset="13969616" size="24" shape="3" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/Reshape/shape:0">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="15" name="StatefulPartitionedCall/first_keras/Reshape" type="Reshape" version="opset1">
+			<data special_zero="false"/>
+			<input>
+				<port id="0">
+					<dim>18000</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Reshape:0">
+					<dim>100</dim>
+					<dim>180</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="16" name="StatefulPartitionedCall/first_keras/MatMul_1" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="false"/>
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>180</dim>
+				</port>
+				<port id="1">
+					<dim>100</dim>
+					<dim>180</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul_1:0">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="17" name="StatefulPartitionedCall/first_keras/Reshape_1/shape" type="Const" version="opset1">
+			<data offset="13969640" size="16" shape="2" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/Reshape_1/shape:0">
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="18" name="StatefulPartitionedCall/first_keras/Reshape_1" type="Reshape" version="opset1">
+			<data special_zero="false"/>
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Reshape_1:0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="19" name="StatefulPartitionedCall/first_keras/Equal_1/ReadVariableOp" type="Const" version="opset1">
+			<data offset="13969656" size="72400" shape="18100,1" element_type="f32"/>
+			<output>
+				<port id="0" precision="FP32" names="StatefulPartitionedCall/first_keras/Equal_1/ReadVariableOp:0">
+					<dim>18100</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="20" name="StatefulPartitionedCall/first_keras/Equal_1" type="Equal" version="opset1">
+			<data auto_broadcast="numpy"/>
+			<input>
+				<port id="0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>18100</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="BOOL" names="StatefulPartitionedCall/first_keras/Equal_1:0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="21" name="StatefulPartitionedCall/first_keras/Cast_2" type="Convert" version="opset1">
+			<data destination_type="f32"/>
+			<input>
+				<port id="0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="StatefulPartitionedCall/first_keras/Cast_2:0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="22" name="StatefulPartitionedCall/first_keras/Reshape_2/shape" type="Const" version="opset1">
+			<data offset="14042056" size="24" shape="3" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/Reshape_2/shape:0">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="23" name="StatefulPartitionedCall/first_keras/Reshape_2" type="Reshape" version="opset1">
+			<data special_zero="false"/>
+			<input>
+				<port id="0">
+					<dim>18100</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Reshape_2:0">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="24" name="StatefulPartitionedCall/first_keras/MatMul_2" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="false"/>
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>181</dim>
+				</port>
+				<port id="1">
+					<dim>100</dim>
+					<dim>181</dim>
+					<dim>16</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/MatMul_2:0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="25" name="StatefulPartitionedCall/first_keras/Reshape_3/shape" type="Const" version="opset1">
+			<data offset="14042080" size="24" shape="3" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/Reshape_3/shape:0">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="26" name="StatefulPartitionedCall/first_keras/Reshape_3" type="Reshape" version="opset1">
+			<data special_zero="false"/>
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Reshape_3:0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="27" name="StatefulPartitionedCall/first_keras/Sum/reduction_indices" type="Const" version="opset1">
+			<data offset="14042104" size="0" shape="0" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/Sum/reduction_indices:0">
+					<dim>0</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="28" name="StatefulPartitionedCall/first_keras/Sum" type="ReduceSum" version="opset1">
+			<data keep_dims="false"/>
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>0</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="StatefulPartitionedCall/first_keras/Sum:0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="29" name="StatefulPartitionedCall/first_keras/transpose_1/perm" type="Const" version="opset1">
+			<data offset="13897600" size="16" shape="2" element_type="i64"/>
+			<output>
+				<port id="0" precision="I64" names="StatefulPartitionedCall/first_keras/transpose_1/perm:0">
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="30" name="StatefulPartitionedCall/first_keras/transpose_1" type="Transpose" version="opset1">
+			<input>
+				<port id="0">
+					<dim>100</dim>
+					<dim>4</dim>
+					<dim>16</dim>
+				</port>
+				<port id="1">
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="Func/StatefulPartitionedCall/output/_10:0,Identity:0,StatefulPartitionedCall/Identity:0,StatefulPartitionedCall/first_keras/transpose_1:0">
+					<dim>4</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="31" name="Func/StatefulPartitionedCall/output/_10:0" type="Result" version="opset1">
+			<input>
+				<port id="0">
+					<dim>4</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+		</layer>
+	</layers>
+	<edges>
+		<edge from-layer="3" from-port="0" to-layer="5" to-port="0"/>
+		<edge from-layer="4" from-port="0" to-layer="5" to-port="1"/>
+		<edge from-layer="2" from-port="0" to-layer="6" to-port="0"/>
+		<edge from-layer="5" from-port="2" to-layer="6" to-port="1"/>
+		<edge from-layer="6" from-port="2" to-layer="8" to-port="0"/>
+		<edge from-layer="7" from-port="0" to-layer="8" to-port="1"/>
+		<edge from-layer="8" from-port="2" to-layer="9" to-port="0"/>
+		<edge from-layer="6" from-port="2" to-layer="11" to-port="0"/>
+		<edge from-layer="10" from-port="0" to-layer="11" to-port="1"/>
+		<edge from-layer="11" from-port="2" to-layer="12" to-port="0"/>
+		<edge from-layer="9" from-port="1" to-layer="13" to-port="0"/>
+		<edge from-layer="12" from-port="1" to-layer="13" to-port="1"/>
+		<edge from-layer="13" from-port="2" to-layer="15" to-port="0"/>
+		<edge from-layer="14" from-port="0" to-layer="15" to-port="1"/>
+		<edge from-layer="1" from-port="0" to-layer="16" to-port="0"/>
+		<edge from-layer="15" from-port="2" to-layer="16" to-port="1"/>
+		<edge from-layer="16" from-port="2" to-layer="18" to-port="0"/>
+		<edge from-layer="17" from-port="0" to-layer="18" to-port="1"/>
+		<edge from-layer="18" from-port="2" to-layer="20" to-port="0"/>
+		<edge from-layer="19" from-port="0" to-layer="20" to-port="1"/>
+		<edge from-layer="20" from-port="2" to-layer="21" to-port="0"/>
+		<edge from-layer="21" from-port="1" to-layer="23" to-port="0"/>
+		<edge from-layer="22" from-port="0" to-layer="23" to-port="1"/>
+		<edge from-layer="0" from-port="0" to-layer="24" to-port="0"/>
+		<edge from-layer="23" from-port="2" to-layer="24" to-port="1"/>
+		<edge from-layer="24" from-port="2" to-layer="26" to-port="0"/>
+		<edge from-layer="25" from-port="0" to-layer="26" to-port="1"/>
+		<edge from-layer="26" from-port="2" to-layer="28" to-port="0"/>
+		<edge from-layer="27" from-port="0" to-layer="28" to-port="1"/>
+		<edge from-layer="28" from-port="2" to-layer="30" to-port="0"/>
+		<edge from-layer="29" from-port="0" to-layer="30" to-port="1"/>
+		<edge from-layer="30" from-port="2" to-layer="31" to-port="0"/>
+	</edges>
+	<rt_info>
+		<conversion_parameters>
+			<framework value="tf"/>
+			<input_shape value="[16,8]"/>
+			<model_name value="multi_batch"/>
+			<output_dir value="DIR"/>
+			<saved_model_dir value="DIR"/>
+		</conversion_parameters>
+	</rt_info>
+</net>

@@ -6,7 +6,7 @@ import conversion_tf as conv
 from hummingbird.ml import convert
 import time
 
-def generate_model(bs, nf, nt, md):
+def generate_model(bs, nf, nt, md, name, model):
     # variables 
     BATCH_SIZE = bs
     N_FEATURES = nf
@@ -15,12 +15,6 @@ def generate_model(bs, nf, nt, md):
     
     # init random forest
     forest = RandomForestClassifier(n_estimators=N_TREES, max_depth=MAX_DEPTH)
-
-    # representative dataset for tflite conversion and int8 quantization
-    def representative_dataset():
-        for _ in range(100):
-          data = np.random.uniform(low=0., high=10., size=(BATCH_SIZE, N_FEATURES))
-          yield [data.astype(np.float32)]
     
     tf.config.run_functions_eagerly(True)
 
@@ -30,60 +24,33 @@ def generate_model(bs, nf, nt, md):
                                n_classes=4)
 
     x_train, y_train = X[:1000], y[:1000]
-    x_test, y_test = X[1000:], y[1000:]
 
     forest.fit(x_train, y_train)
 
-    # generate input data
-    X_f_b = np.random.randint(low=0, high=10, size=(BATCH_SIZE, N_FEATURES)).astype(np.int8)
-    X_f_b_f = X_f_b.astype(np.float32)
-
     # initialize model
-    model_gemm = conv.GEMMDecisionTreeImplKeras(forest)
+    if model == 'GEMM':
+        model = conv.GEMMDecisionTreeImplKeras(forest)
+        op = convert(forest, 'torch', extra_config={"tree_implementation":"gemm"}).model._operators[0]
+    elif model == 'TT':
+        model = conv.TreeTraversalDecisionTreeImplKeras(forest)
+        op = convert(forest, 'torch', extra_config={"tree_implementation":"tree_trav"}).model._operators[0]
+    elif model == 'PTT':
+        model = conv.PerfectTreeTraversalDecisionTreeImplKeras(forest)
+        op = convert(forest, 'torch', extra_config={"tree_implementation":"perf_tree_trav"}).model._operators[0]
 
-    op = convert(forest, 'torch', extra_config={"tree_implementation":"gemm"}).model._operators[0]
-    print(op.weight_1.shape)
 
     start = time.perf_counter()
-    test = model_gemm(np.array([[1.,2.,3.,4.]], dtype=np.float32))
+    x = np.array([[1.,2.,3.,4.,5.,6.,7.,8.], [8.,8.,8.,8.,8.,8.,8.,8.]], dtype=np.float32)
+    test = model(9 * np.random.random_sample((BATCH_SIZE, 8)) + 1)
+    inf_time = (time.perf_counter() - start) * 1000
     inf_time = (time.perf_counter() - start) * 1000
 
     print(inf_time)
-    model_gemm.save('../../saved_models/ncs/test/ncs_test')
+    model.save(f'../../saved_models/ncs/test/{name}')
 
     # get model prediction
     print(test)
 
-    #concrete_func = model_gemm.__call__.get_concrete_function()
-
-
-    '''
-    # convert model to tflite
-    converter = tf.lite.TFLiteConverter.from_concrete_functions([concrete_func], model_gemm)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.representative_dataset = representative_dataset
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-    converter.inference_input_type = tf.int8  
-    converter.inference_output_type = tf.int8
-
-    tflite_model_gemm = converter.convert()
-
-    # interprete tflite model
-    interpreter = tf.lite.Interpreter(model_content=tflite_model_gemm)
-    interpreter.allocate_tensors()
-
-    output = interpreter.get_output_details()[0]  
-    input = interpreter.get_input_details()[0]  
-
-    interpreter.set_tensor(input['index'], X_f_b)
-    interpreter.invoke()
-    y_lite_gemm = interpreter.get_tensor(output['index'])
-    y_pred_lite_gemm = np.argmax(y_lite_gemm, axis=1)
-
-    # save tflite model
-    with open(f'./saved_models/random_forest/gemm/float32/final_eval/model_{N_TREES}_{MAX_DEPTH}_{N_FEATURES}_{BATCH_SIZE}.tflite', 'wb') as f:
-        f.write(tflite_model_gemm)
-    '''
         
 def main():
     bsizes = [1, 64, 256, 512]
@@ -95,7 +62,14 @@ def main():
     #    for n_tree in n_trees:
     #        generate_model(256, 16, n_tree, max_depth)
 
-    generate_model(1, 4, 1, 1)
+    name = input("Modelname: ")
+    type = input("Modeltype <GEMM> or <TT> or <PTT>: ")
+    bsize = int(input("Batchsize: "))
+    nfeat = int(input("Number of Features: "))
+    mdepth = int(input("Max Depth: "))
+    n_trees = int(input("Number of Trees: "))
+    
+    generate_model(bsize, nfeat, n_trees, mdepth, name, type)
 
 
 if __name__ == '__main__':

@@ -5,38 +5,12 @@ import numpy as np
 tf.config.run_functions_eagerly(True)
 
 BATCH_SIZE = 1
-N_FEATURES = 4
+N_FEATURES = 8
 
 ''' 
 3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
 convertible but are not fully edgetpu compatible so they get partially mapped to cpu instead.
 '''
-def get_implements_signature(n):
-  implements_signature = [
-    # 'name' will be used as a name for the operation.
-    f'name: {n}',
-    # attr "tfl_fusable_op" is required to be set with true value.
-    'attr {key: "tfl_fusable_op" value { b: true } }',
-  ]
-  return ' '.join(implements_signature)
-
-
-@tf.function(experimental_implements=get_implements_signature('ge_edgetpu'))
-def _greater_equal(x, y):
-    return tf.cast(2 * tf.sigmoid(x - y), tf.int32) 
-
-@tf.function(experimental_implements=get_implements_signature('g_edgetpu'))
-def _greater(x, y):
-    return tf.cast(2 * tf.sigmoid((x - (y + 1))), tf.int32) 
-
-@tf.function(experimental_implements=get_implements_signature('le_edgetpu'))
-def _less_equal(x, y):
-    return tf.cast(2 * tf.sigmoid(y - x), tf.int32) 
-
-@tf.function(experimental_implements=get_implements_signature('l_edgetpu'))
-def _less(x, y):
-    return tf.cast(2 * tf.sigmoid((y - 1) - x), tf.int32)
-
 class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
     def __init__(self, skl_model):
@@ -58,8 +32,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
         self.decision_cond = tf.math.less_equal
         if op.decision_cond.__name__ == 'le':
-            #self.decision_cond = tf.math.less_equal
-            self.decision_cond = tf.math.less
+            def less_eq(x, y):
+                return tf.add(tf.cast(tf.less(x, y), tf.float32), tf.cast(tf.equal(x, y), tf.float32))
+            self.decision_cond = less_eq
         elif op.decision_cond.__name__ == 'ge':
             self.decision_cond = tf.math.greater_equal
         elif op.decision_cond.__name__ == 'lt':
@@ -106,9 +81,9 @@ class GEMMDecisionTreeImplKeras(tf.keras.Model):
         x = tf.linalg.matmul(self.weight_3, x)
         x = tf.reshape(x, (self.n_trees, self.hidden_three_size, -1))
 
-        #x = tf.transpose(tf.reduce_sum(x, 0))
-        x = tf.reduce_sum(x, 0)
-        #x = tf.transpose(x)
+        x = tf.reduce_sum(x, axis=[0], keepdims=False)
+
+        x = tf.transpose(x)
 
         return x
 
@@ -157,6 +132,71 @@ class GEMMDecisionTreeImpl(tf.Module):
         x = tf.transpose(tf.reduce_sum(x, 0))
 
         return x
+
+class TreeTraversalDecisionTreeImplKeras(tf.keras.Model):
+    
+    def __init__(self, skl_model):
+        super(TreeTraversalDecisionTreeImplKeras, self).__init__(name='first_keras')
+        container = convert(skl_model, 'torch', extra_config={"tree_implementation":"tree_trav"})
+        op = container.model._operators[0]
+        
+        self.nodes_offset = tf.Variable(op.nodes_offset, trainable=False, name="nodes_offset")
+
+        def _expand_indexes(batch_size):
+            indexes = op.nodes_offset
+            indexes = indexes.expand(batch_size, op.num_trees)
+            return indexes.detach().numpy().reshape(-1)
+
+        self.indices = tf.Variable(_expand_indexes(BATCH_SIZE), trainable=False, name="indices")
+
+        self.max_tree_depth = op.max_tree_depth
+        self.features = tf.Variable(op.features.detach(), trainable=False, name="features")
+        self.num_trees = op.num_trees
+        self.thresholds = tf.Variable(op.thresholds.detach(), trainable=False, name="thresh")
+
+        self.lefts = tf.Variable(op.lefts.detach(), trainable=False, name="lefts")
+        self.rights = tf.Variable(op.rights.detach(), trainable=False, name="rights")
+        self.values = tf.Variable(op.values.detach(), trainable=False, name="values")
+
+        self.n_classes = op.n_classes
+
+        self.decision_cond = tf.math.less
+        if op.decision_cond.__name__ == 'le':
+            def less_eq(x, y):
+                return tf.cast(tf.add(tf.cast(tf.less(x, y), tf.float32), tf.cast(tf.equal(x, y), tf.float32)), tf.bool)
+            self.decision_cond = less_eq
+        elif op.decision_cond.__name__ == 'ge':
+            self.decision_cond = tf.math.greater_equal
+        elif op.decision_cond.__name__ == 'lt':
+            self.decision_cond = tf.math.less
+        elif op.decision_cond.__name__ == 'gt':
+            self.decision_cond = tf.math.greater
+        elif op.decision_cond.__name__ == 'eq':
+            self.decision_cond = tf.math.equal
+        else:
+            self.decision_cond = tf.math.not_equal
+
+    def call(self, x):
+        indexes = self.indices
+
+        for _ in range(self.max_tree_depth):
+            tree_nodes = indexes
+            feature_nodes = tf.reshape(tf.gather(self.features, axis=0, indices=tree_nodes), [-1, self.num_trees])
+            feature_values = tf.gather(x, feature_nodes, axis=1)
+
+            thresholds = tf.reshape(tf.gather(self.thresholds, indexes, axis=0), [-1, self.num_trees])
+            lefts = tf.reshape(tf.gather(self.lefts, indexes, axis=0), [-1, self.num_trees])
+            rights = tf.reshape(tf.gather(self.rights, indexes, axis=0), [-1, self.num_trees])
+
+            indexes = tf.cast(tf.where(self.decision_cond(feature_values, thresholds), lefts, rights), dtype=tf.int64)
+            indexes = indexes + self.nodes_offset
+            indexes = tf.reshape(indexes, [-1,])
+
+        output = tf.reshape(tf.gather(self.values, indexes,axis=0), [-1, self.num_trees, self.n_classes])
+
+        output = tf.reduce_sum(output, axis=[1], keepdims=False)
+
+        return output
 
 
 class TreeTraversalDecisionTreeImpl(tf.Module):
@@ -208,6 +248,58 @@ class TreeTraversalDecisionTreeImpl(tf.Module):
         output = tf.reduce_sum(output, 1)
 
         return tf.math.argmax(output, axis=1), output
+    
+class PerfectTreeTraversalDecisionTreeImplKeras(tf.keras.Model):
+    
+    def __init__(self, skl_model):
+        super(PerfectTreeTraversalDecisionTreeImplKeras, self).__init__(name='first_keras')
+        container = convert(skl_model, 'torch', extra_config={"tree_implementation":"perf_tree_trav"})
+        self.op = container.model._operators[0]
+
+        self.root_nodes = tf.Variable(self.op.root_nodes, trainable=False, name='root_nodes')
+        self.root_biases = tf.Variable(self.op.root_biases, trainable=False, name='root_biases')
+
+        self.tree_indices = tf.Variable(self.op.tree_indices, trainable=False, name='tree_ind')
+        self.num_trees = tf.Variable(self.op.num_trees, trainable=False, name='num_trees')
+
+        self.leaf_nodes = tf.Variable(self.op.leaf_nodes, trainable=False, name='leaf_nodes')
+        self.n_classes = tf.Variable(self.op.n_classes, trainable=False, name='n_classes')
+
+        self.decision_cond = tf.math.less
+        if self.op.decision_cond.__name__ == 'le':
+            def less_eq(x, y):
+                return tf.cast(tf.add(tf.cast(tf.less(x, y), tf.float32), tf.cast(tf.equal(x, y), tf.float32)), tf.bool)
+            self.decision_cond = less_eq
+        elif self.op.decision_cond.__name__ == 'ge':
+            self.decision_cond = tf.math.greater_equal
+        elif self.op.decision_cond.__name__ == 'lt':
+            self.decision_cond = tf.math.less
+        elif self.op.decision_cond.__name__ == 'gt':
+            self.decision_cond = tf.math.greater
+        elif self.op.decision_cond.__name__ == 'eq':
+            self.decision_cond = tf.math.equal
+        else:
+            self.decision_cond = tf.math.not_equal
+
+    def call(self, x):
+        
+        prev_indices = tf.cast((self.decision_cond(tf.gather(x, self.root_nodes, axis=1), self.root_biases)), tf.int64)
+        prev_indices = prev_indices + self.tree_indices
+        prev_indices = tf.reshape(prev_indices, [-1,])
+
+        factor = 2
+        for nodes, biases in zip(self.op.nodes, self.op.biases):
+            gather_indices = tf.reshape(tf.gather(nodes, prev_indices, axis=0), [-1, self.num_trees])
+            features = tf.reshape(tf.gather(x, gather_indices, axis=1), [-1,])
+            prev_indices = (
+                factor * prev_indices + tf.cast(self.decision_cond(features, tf.gather(biases, prev_indices, axis=0)), tf.int64)
+            )
+
+        output = tf.reshape(tf.gather(self.leaf_nodes, prev_indices, axis=0), [-1, self.num_trees, self.n_classes])
+
+        output = tf.math.reduce_sum(output, axis=1)
+
+        return output
 
 
 class PerfectTreeTraversalDecisionTreeImpl(tf.Module):

@@ -37,3 +37,12 @@ NCS2:
     less_equal nicht kompatibel, aber less und equal schon
     Wenn source setup.sh ausgeführt wird, funktionert Inferenz auf dem NCS2
 
+    Das CPU-Plugin hat mehr Optimisierungsparamter als das MYRIAD Plugin, kann daher besser vom
+    Benchmarkingtool optimisiert werden. 
+
+    Mögliches TODO:
+        > PTT auf NCS2 ausprobieren
+        > NCS2 Benchmarks mit sklaierender Modellgröße
+
+
+
