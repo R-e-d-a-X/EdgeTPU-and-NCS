@@ -11,6 +11,15 @@ N_FEATURES = 8
 3 Hummingbird Tree Translation methods implemented as tensorflow modules. These modules are tflite 
 convertible but are not fully edgetpu compatible so they get partially mapped to cpu instead.
 '''
+
+class DataTransferTest(tf.keras.Model):
+    def __init__(self):
+        super(DataTransferTest, self).__init__(name='data_test')
+
+    def call(self, x):
+        return x
+
+
 class GEMMDecisionTreeImplKeras(tf.keras.Model):
 
     def __init__(self, skl_model):

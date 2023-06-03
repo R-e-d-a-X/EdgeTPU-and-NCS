@@ -18,12 +18,12 @@ def generate_model(bs, nf, nt, md, name, model):
     
     tf.config.run_functions_eagerly(True)
 
-    X, y = make_classification(n_samples=1300, n_features=N_FEATURES,
-                               n_informative=N_FEATURES, n_redundant=0,
+    X, y = make_classification(n_samples=1500, n_features=8,
+                               n_informative=6, n_redundant=0,
                                random_state=0, shuffle=True,
                                n_classes=4)
 
-    x_train, y_train = X[:1000], y[:1000]
+    x_train, y_train = X, y
 
     forest.fit(x_train, y_train)
 
@@ -37,39 +37,49 @@ def generate_model(bs, nf, nt, md, name, model):
     elif model == 'PTT':
         model = conv.PerfectTreeTraversalDecisionTreeImplKeras(forest)
         op = convert(forest, 'torch', extra_config={"tree_implementation":"perf_tree_trav"}).model._operators[0]
+    elif model == 'Data':
+        model = conv.DataTransferTest()
 
+    x = 9 * np.random.random_sample((BATCH_SIZE, 8)) + 1
 
     start = time.perf_counter()
-    x = np.array([[1.,2.,3.,4.,5.,6.,7.,8.], [8.,8.,8.,8.,8.,8.,8.,8.]], dtype=np.float32)
-    test = model(9 * np.random.random_sample((BATCH_SIZE, 8)) + 1)
-    inf_time = (time.perf_counter() - start) * 1000
+    test = model(x)
     inf_time = (time.perf_counter() - start) * 1000
 
     print(inf_time)
-    model.save(f'../../saved_models/ncs/test/{name}')
+    model.save(f'../../saved_models/ncs/benchmarks/{name}')
 
     # get model prediction
     print(test)
 
         
 def main():
-    bsizes = [1, 64, 256, 512]
-    nfeat  = [2, 8, 16]
-    mdepth = [1, 4, 16]
-    n_trees = [1, 32, 128]
+    bsize = 1
+    #mdepth = [1, 4, 8, 16, 32, 64, 128]
+    mdepth = [64, 128]
+    n_trees = [1, 16, 32, 64, 128, 256, 512]
+    #types = ['GEMM', 'TT', 'PTT']
+    types = ['GEMM', 'TT']
+    depth = 8
 
-    #for max_depth in mdepth:
-    #    for n_tree in n_trees:
-    #        generate_model(256, 16, n_tree, max_depth)
+    for m in mdepth:
+        for t in types:
+            name = f"{t}_scaling_depth_{m}"
+            generate_model(bsize, 8, 64, m, name, t)
 
-    name = input("Modelname: ")
-    type = input("Modeltype <GEMM> or <TT> or <PTT>: ")
-    bsize = int(input("Batchsize: "))
-    nfeat = int(input("Number of Features: "))
-    mdepth = int(input("Max Depth: "))
-    n_trees = int(input("Number of Trees: "))
+
+    #for t in types:
+    #    name = f"{t}_scaling_trees_{512}"
+    #    generate_model(1, 8, 512, 8, name, t)
+
+    #name = input("Modelname: ")
+    #type = input("Modeltype <GEMM> or <TT> or <PTT>: ")
+    #bsize = int(input("Batchsize: "))
+    #nfeat = int(input("Number of Features: "))
+    #mdepth = int(input("Max Depth: "))
+    #n_trees = int(input("Number of Trees: "))
     
-    generate_model(bsize, nfeat, n_trees, mdepth, name, type)
+    
 
 
 if __name__ == '__main__':

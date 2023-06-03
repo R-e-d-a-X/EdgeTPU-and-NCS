@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<net name="TensorFlow_Frontend_IR" version="11">
+	<layers>
+		<layer id="0" name="input_1" type="Parameter" version="opset1">
+			<data shape="1,8" element_type="f32" />
+			<output>
+				<port id="0" precision="FP32" names="Func/PartitionedCall/input/_0,Func/PartitionedCall/input/_0:0,Func/PartitionedCall/output/_1,Func/PartitionedCall/output/_1:0,Identity,Identity:0,PartitionedCall/Identity,PartitionedCall/Identity:0,input_1,input_1:0">
+					<dim>1</dim>
+					<dim>8</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="1" name="Identity" type="Result" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>1</dim>
+					<dim>8</dim>
+				</port>
+			</input>
+		</layer>
+	</layers>
+	<edges>
+		<edge from-layer="0" from-port="0" to-layer="1" to-port="0" />
+	</edges>
+	<rt_info>
+		<MO_version value="2022.3.0-9052-9752fafe8eb-releases/2022/3" />
+		<Runtime_version value="2022.3.0-9052-9752fafe8eb-releases/2022/3" />
+		<conversion_parameters>
+			<framework value="tf" />
+			<input_shape value="[1,8]" />
+			<model_name value="data_transfer" />
+			<output_dir value="DIR" />
+			<saved_model_dir value="DIR" />
+			<use_new_frontend value="True" />
+		</conversion_parameters>
+		<legacy_frontend value="False" />
+	</rt_info>
+</net>
