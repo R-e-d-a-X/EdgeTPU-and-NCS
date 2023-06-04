@@ -40,7 +40,7 @@ def generate_model(bs, nf, nt, md, name, model):
     elif model == 'Data':
         model = conv.DataTransferTest()
 
-    x = 9 * np.random.random_sample((BATCH_SIZE, 8)) + 1
+    x = (np.abs(X.min()) + np.abs(X.max())) * np.random.random_sample((BATCH_SIZE,8)) + X.min()
 
     start = time.perf_counter()
     test = model(x)
@@ -50,27 +50,25 @@ def generate_model(bs, nf, nt, md, name, model):
     model.save(f'../../saved_models/ncs/benchmarks/{name}')
 
     # get model prediction
-    print(test)
+    #print(test)
 
         
 def main():
-    bsize = 1
-    #mdepth = [1, 4, 8, 16, 32, 64, 128]
-    mdepth = [64, 128]
+    bsizes = [1, 32, 64, 128, 256, 512, 1024] 
+    mdepth =  [1,  4,  4,  8,   8,  16,  16]
     n_trees = [1, 16, 32, 64, 128, 256, 512]
-    #types = ['GEMM', 'TT', 'PTT']
-    types = ['GEMM', 'TT']
-    depth = 8
+    params = list(zip(mdepth, n_trees))
+    types = ['GEMM', 'TT', 'PTT']
 
-    for m in mdepth:
+    #for (depth, ntrees) in params:
+    #    for t in types:
+    #        name = f"{t}_scaling_both_{ntrees}_{depth}"
+    #        generate_model(1, 8, ntrees, depth, name, t)
+
+    for bs in bsizes:
         for t in types:
-            name = f"{t}_scaling_depth_{m}"
-            generate_model(bsize, 8, 64, m, name, t)
-
-
-    #for t in types:
-    #    name = f"{t}_scaling_trees_{512}"
-    #    generate_model(1, 8, 512, 8, name, t)
+            name = f"{t}_scaling_batch_{bs}"
+            generate_model(bs, 8, 100, 8, name, t)
 
     #name = input("Modelname: ")
     #type = input("Modeltype <GEMM> or <TT> or <PTT>: ")

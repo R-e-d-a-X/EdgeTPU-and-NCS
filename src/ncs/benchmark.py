@@ -16,22 +16,21 @@ def main():
     model = ie.read_model(model=model_xml)
 
     ie.set_property({'CACHE_DIR': '/home/tobi/Bachelorarbeit/'})
-    ie.set_property('MYRIAD', {'PERFORMANCE_HINT' : 'THROUGHPUT'})
+    ie.set_property('MYRIAD', {'PERFORMANCE_HINT' : 'LATENCY'})
     ie.set_property('MYRIAD', {"MYRIAD_ENABLE_HW_ACCELERATION": "YES"})
 
     compiled_model = ie.compile_model(model=model, device_name=device_map[device])
     input_layer = compiled_model.input(0)
     output_layer = compiled_model.output(0)
 
-    x = [np.array([[1,2,3,4,5,6,7,8]], dtype=np.float32).tolist()]
     inf_times = []
     for iteration in range(n_iter + 1):
         if iteration % 100 == 0:
             print(f"{(iteration+1) / (n_iter+1) * 100 : .2f}% done")
         if device == 0:
-            x = [9 * np.random.random_sample((1,8)) + 1]
+            x = [14 * np.random.random_sample((1,8)) - 7.135]
         else:
-            x = [9 * np.random.random_sample((1,8)) + 1]
+            x = [14 * np.random.random_sample((1,8)) - 7.135]
         start = time.perf_counter()
         res = compiled_model(x)[output_layer]
         inf_time_s = time.perf_counter() - start
