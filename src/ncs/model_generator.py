@@ -65,10 +65,12 @@ def main():
     #        name = f"{t}_scaling_both_{ntrees}_{depth}"
     #        generate_model(1, 8, ntrees, depth, name, t)
 
-    for bs in bsizes:
-        for t in types:
-            name = f"{t}_scaling_batch_{bs}"
-            generate_model(bs, 8, 100, 8, name, t)
+    #for bs in bsizes:
+    #    for t in types:
+    #        name = f"{t}_scaling_batch_{bs}"
+    #        generate_model(bs, 8, 100, 8, name, t)
+
+    generate_model(1, 8, 1024, 32, "GEMM_scaling_both_1024_32", 'GEMM')
 
     #name = input("Modelname: ")
     #type = input("Modeltype <GEMM> or <TT> or <PTT>: ")
