@@ -42,7 +42,7 @@ NCS2:
 
     Mögliches TODO:
         > PTT auf NCS2 ausprobieren
-        > NCS2 Benchmarks mit sklaierender Modellgröße
+        > NCS2 Benchmarks mit skalierender Modellgröße
 
 
 
